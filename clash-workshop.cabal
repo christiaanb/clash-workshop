@@ -88,6 +88,13 @@ library
     Example.Project
     Day1
     Day2
+    Day3.Core
+    Day3.CoreTypes
+    Day3.CodeGen
+
+  build-depends:
+    mtl
+
   default-language: Haskell2010
 
 -- Builds the executable 'clash', with clash-workshop project in scope

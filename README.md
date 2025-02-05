@@ -1,317 +1,142 @@
-<!-- omit in toc -->
-# Simple Starter Project
-This starter project contains the scaffolding needed to integrate Clash with the Cabal and Stack build systems. It allows you to use dependencies from [Hackage](https://hackage.haskell.org/) easily.
-
-<!-- omit in toc -->
 # Table of Contents
-- [Getting this project](#getting-this-project)
-- [Building and testing this project](#building-and-testing-this-project)
-  - [Stack (Windows, Linux, MacOS) [recommended]](#stack-windows-linux-macos-recommended)
-  - [Cabal (Linux, MacOS)](#cabal-linux-macos)
-  - [REPL](#repl)
-  - [IDE support](#ide-support)
-- [Project overview](#project-overview)
-  - [clash-workshop.cabal](#namecabal)
-  - [cabal.project](#cabalproject)
-  - [stack.yaml](#stackyaml)
-  - [src/](#src)
-  - [tests/](#tests)
-- [Change the license](#change-the-license)
+- [Table of Contents](#table-of-contents)
+- [Setup](#setup)
+- [About these exercises](#about-these-exercises)
+- [On Feistel networks](#on-feistel-networks)
+- [Exercises](#exercises)
+  - [Exercise 1: A pure Feistel Network](#exercise-1-a-pure-feistel-network)
+    - [1a](#1a)
+    - [1b](#1b)
+    - [1c](#1c)
+    - [1d](#1d)
+  - [Exercise 2: Pipelining](#exercise-2-pipelining)
+    - [2a](#2a)
+    - [2b](#2b)
+    - [2c. (optional)](#2c-optional)
+    - [2d](#2d)
+    - [2e. Questions](#2e-questions)
+  - [Exercise 3: Instruction machines](#exercise-3-instruction-machines)
+    - [3a](#3a)
+    - [3b](#3b)
+    - [3c](#3c)
+    - [3d](#3d)
 
-# Getting this project
-Stack users can run `stack new my-clash-project clash-lang/simple`. Cabal users can [download a zip](https://raw.githubusercontent.com/clash-lang/clash-starters/main/simple.zip) containing the project.
+# Setup
+You need a recent Stack on your PATH. To synthesize the designs, we're using Clash 1.8. To build the project, run:
 
-# Building and testing this project
-There's a number of ways to build this project on your machine. The recommended way of doing so is using _Stack_, whose instructions will follow directly after this section.
-
-## Stack (Windows, Linux, MacOS) [recommended]
-Install Stack using your package manager or refer to the [How to install](https://docs.haskellstack.org/en/stable/README/#how-to-install) section of the [Stack manual](https://docs.haskellstack.org/en/stable/README/).
-
-Build the project with:
-
-```bash
+```
 stack build
 ```
 
-To run the tests defined in `tests/`, use:
+To run the tests, run:
 
-```bash
+```
 stack test
 ```
 
-To compile the project to VHDL, run:
-
-```bash
-stack run clash -- Example.Project --vhdl
-```
-
-You can find the HDL files in `vhdl/`. The source can be found in `src/Example/Project.hs`.
-
-## Cabal (Linux, MacOS)
-**The following instructions only work for Cabal >=3.0 and GHC >=8.4.**
-
-First, update your cabal package database:
-
-```bash
-cabal update
-```
-
-You only have to run the update command once. After that, you can keep rebuilding your project by running the build command:
-
-```bash
-cabal build
-```
-
-To run the tests defined in `tests/`, use:
-
-```bash
-cabal run test-library
-cabal run doctests
-```
-
-To compile the project to VHDL, run:
-
-```bash
-cabal run clash -- Example.Project --vhdl
-```
-
-You can find the HDL files in `vhdl/`. The source can be found in `src/Example/Project.hs`.
-
-## REPL
-Clash offers a [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) as a quick way to try things, similar to Python's `python` or Ruby's `irb`. Stack users can open the REPL by invoking:
+To see the various options Tasty offers, run:
 
 ```
-stack run clashi
+stack test --test-arguments '--help'
 ```
 
-Cabal users use:
+# About these exercises
+During this set of exercises we are going to build a [Feistel Cipher](https://en.wikipedia.org/wiki/Feistel_cipher) in Clash. The goal is of course not to build properly vetted crypto hardware, but to illustrate and practice Clash concepts. Most exercises will merely point to existing documentation at [hackage.haskell.org/package/clash-prelude](https://hackage.haskell.org/package/clash-prelude) instead of providing it here. We appreciate feedback on how to improve these documents.
 
-```
-cabal run clashi
-```
+After these exercises you should:
 
-## IDE support
-We currently recommend Visual Studio Code in combination with the _Haskell_ plugin. All you need to do is open this folder in VSCode; it will prompt you to install the plugin.
+* ..be able to reason about the HDL Clash will produce
+* ..feel confident applying higher-order function such as `foldl`
+* ..be able to use basic data structures to express the core of your problems
+* ..know how to use _type parameters_ and _static arguments_ to create parameterizable hardware designs
+* ..(_optional_) seen how you can use Clash's `DSignal` to prevent common _timing_ errors in your hardware designs
 
-# Project overview
-This section will give a tour of all the files present in this starter project. It's also a general introduction into Clash dependency management. It's not an introduction to Clash itself though. If you're looking for an introduction to Clash, read ["Clash.Tutorial" on Hackage](https://hackage.haskell.org/package/clash-prelude).
+All exercises have solutions. See `src/Clash/Feistel/Impl*.hs`.
 
-```
-clash-workshop
-├── bin
-│   ├── Clash.hs
-│   └── Clashi.hs
-├── src
-│   └── Example
-│       └── Project.hs
-├─── tests
-│   ├── Tests
-│   │   └── Example
-│   │       └── Project.hs
-│   ├── doctests.hs
-│   └── unittests.hs
-├── cabal.project
-├── clash-workshop.cabal
-└── stack.yaml
-```
+# On Feistel networks
+A _Feistel Network_ is a structure used to develop symmetric block ciphers, originally developed by _Horst Feistel_ at IBM. By their nature, Feistel Networks have exactly the same structure for _encryption_ and _decryption_. In the worst case, only a key reschedule has to be staged to change from one to the other. Although some variation exists in existing Feistel Networks, most ciphers distinguish themselves by implementing a different _round function_ (displayed as _F_ in the image below). Thanks to its clever arrangement, round functions do not have to be reversible.
 
-## clash-workshop.cabal
-This is the most important file in your project. It describes how to build your project. Even though it ends in `.cabal`, Stack will use this file too. It starts of with meta-information:
+For these exercises we will use an (insecure!) pre-made round function. We will focus on generating the structure and scheduling round keys instead. The following image captures the essence of a Feistel Network:
 
-```yaml
-cabal-version:       2.4
-name:                clash-workshop
-version:             0.1
-license:             BSD-2-Clause
-author:              John Smith <john@example.com>
-maintainer:          John Smith <john@example.com>
-```
+![Feistel Network](imgs/800px-Feistel_cipher_diagram_en.svg.png)
 
-If you decide to publish your code on [Hackage](https://hackage.haskell.org/), this will show up on your package's front page. Take note of the license, it's set to `BSD-2-Clause` by default, but this might bee too liberal for your project. You can use any of the licenses on [spdx.org/licenses](https://spdx.org/licenses/). If none of those suit, remove the `license` line, add `license-file: LICENSE`, and add a `LICENSE` file of your choice to the root of this project. Moving on:
+About the image: [Feistel_cipher_diagram.svg: Amirki derivative work: Amirki / CC BY-SA](https://commons.wikimedia.org/wiki/File:Feistel_cipher_diagram_en.svg)
 
-```yaml
-common common-options
-  default-extensions:
-    BangPatterns
-    BinaryLiterals
-    ConstraintKinds
-    [..]
-    QuasiQuotes
+# Exercises
+Scaffolding for exercises (and their solutions) can be found in `src/Clash/Feistel`.
 
-    -- Prelude isn't imported by default as Clash offers Clash.Prelude
-    NoImplicitPrelude
-```
+## Exercise 1: A pure Feistel Network
+In this exercise we are going to build a _pure_ Feistel Network. I.e., a Feistel network that does _not_ have any internal state and does all its work in a single clock cycle. Take a moment to read and understand `src/Clash/Feistel/Ex1.hs`. Also feel free to look around in `clash-feistel.cabal` to get a feel for how to setup a Clash/Haskell project.
 
-Clash's parent language is Haskell and its de-facto compiler, GHC, does a lot of heavy lifting before Clash gets to see anything. Because using Clash's Prelude requires a lot of extensions to be enabled to be used, we enable them here for all files in the project. Alternatively, you could add them where needed using `{-# LANGUAGE SomeExtension #-}` at the top of a `.hs` file instead. The next section, `ghc-options`, sets warning flags (`-Wall -Wcompat`) and flags that make GHC generate code Clash can handle.
+### 1a
+Provide a definition for `feistel`. Look at the various functions in [Clash.Sized.Vector](https://hackage.haskell.org/package/clash-prelude-1.8.2/docs/Clash-Sized-Vector.html) to get an idea on how to compose a number of functions.
 
-Note that this whole section is a `common` "stanza". We'll use it as a template for any other definitions (more on those later). The last thing we add to the common section is some build dependencies:
+### 1b
+Parameterize `feistel` in its round function.
 
-```yaml
-  build-depends:
-    base,
-    Cabal,
+### 1c
+Create a type alias for the (function-)type of a _round function_ and use it in the type signatures of `round` and `feistel`.
 
-    -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.8.2 && < 1.10,
-    ghc-typelits-natnormalise,
-    ghc-typelits-extra,
-    ghc-typelits-knownnat
-```
+### 1d
+Implement a number of (property) tests for the Feistel network. Extend `tests/Tests/Clash/Feistel/Ex1.hs`. You can run your tests with `stack test --test-arguments '-p Ex1'`.
 
-These dependencies are fetched from [Hackage](https://hackage.haskell.org/), Haskell's store for packages. Next up is a `library` stanza. It defines where the source is located, in our case `src/`, and what modules can be found there. In our case that's just a single module, `Example.Project`.
+<!-- Note: the solutions to this exercise are stored in `tests/Tests/Clash/Feistel/Impl1.hs`. -->
 
-```yaml
-library
-  import: common-options
-  hs-source-dirs: src
-  exposed-modules:
-    Example.Project
-  default-language: Haskell2010
-```
+## Exercise 2: Pipelining
+You have hopefully found it straightforward enough to implement a pure Feistel Network. Such a pure network cannot be expected to yield efficient hardware, due to its (potentially very) long critical path. In other words, you can only expect your target platform to run at very low clock speeds. To mitigate this, we need to pipeline the design.
 
-Note that extra dependencies could be added by adding a `build-depends` line to this section. The following section defines a testsuite called _doctests_. Doctests are tests that are defined in the documentation of your project. We'll see this in action in [src/](#src).
+### 2a
+Implement your network in terms of `Signal`s.
 
-```yaml
-test-suite doctests
-  type:             exitcode-stdio-1.0
-  default-language: Haskell2010
-  main-is:          doctests.hs
-  ghc-options:      -Wall -Wcompat -threaded
-  hs-source-dirs:   tests
-  build-depends:
-    base,
-    clash-workshop,
-    doctest-parallel >= 0.2 && < 0.4,
-```
+### 2b
+Add a `register` after every round.
 
-Last but not least, another testsuite stanza is defined:
+### 2c. (optional)
+Clash provides an API to annotate _delays_ on `Signal`s, in the form of `DSignal`. See the documentation [over here](https://hackage.haskell.org/package/clash-prelude-1.8.2/docs/Clash-Signal-Delayed.html). When used, Clash will provide errors if users try to combine two signals with different delays. Besides an additional level of safety, this can be used to automatically insert an appropriate number of registers to synchronize two signals. For this exercise, do two things:
 
-```yaml
-test-suite test-library
-  import: common-options
-  default-language: Haskell2010
-  hs-source-dirs: tests
-  type: exitcode-stdio-1.0
-  ghc-options: -threaded
-  main-is: unittests.hs
-  other-modules:
-    Tests.Example.Project
-  build-depends:
-    clash-workshop,
-    QuickCheck,
-    hedgehog,
-    tasty >= 1.2 && < 1.6,
-    tasty-hedgehog,
-    tasty-th
-```
+1. Convert your design to use `DSignal` instead of `Signal`. Hint: inspect and use `Clash.Feistel.Util`. (_If you like the challenge, implement the functions in there yourself._)
 
-These testsuites are executed when using `stack test` or `cabal test`. Note that Cabal swallows the output if more than one testsuite is defined, as is the case here. You might want to consider running the testsuites separately. More on tests in [/tests](#tests).
+2. Do not add pipelining-registers in the function assembling the Feistel Network. Instead, convert your round function to annotate its delay using `DSignal`s and use that type information to insert the appropriate number of registers in the parts feeding the keys/words to the round function.
 
-## cabal.project
-A `cabal.project` file is used to configure details of the build, more info can be found in the [Cabal user documentation](https://cabal.readthedocs.io/en/latest/cabal-project.html). We use it to make Cabal always generate GHC environment files, which is a feature Clash needs when using Cabal.
+Hint: Check out the definition of `RoundFunction` in the solution `src/Clash/Feistel/Impl2c.hs`.
 
-```haskell
-packages:
-  clash-workshop.cabal
+### 2d
+Like `1d`, write property tests for your pipelined Feistel Network. Use [sampleN](https://hackage.haskell.org/package/clash-prelude-1.8.2/docs/Clash-Signal-Internal.html#v:sampleN) to _sample_ a `Signal`.
 
-write-ghc-environment-files: always
-```
+Hint: if you use `sampleN` on a function with a hidden reset, `sampleN` will generate a reset signal. This reset signal is asserted for a single cycle.
 
-`cabal.project` can be used to build multi-package projects, by extending `packages`.
+### 2e. Questions
+(To be answered in the session discussing the solutions to the exercises / the next few exercises.)
 
-## stack.yaml
-While Cabal fetches packages straight from Hackage (with a bias towards the latest versions), Stack works through _snapshots_. Snapshots are an index of packages from Hackage know to work well with each other. In addition to that, they specify a GHC version. These snapshots are curated by the community and FP Complete and can be found on [stackage.org](https://www.stackage.org/).
+1. How many registers do you need to represent your Feistel Network?
 
-```yaml
-resolver: lts-19.32
-```
+2. Where is your network's critical path?
 
-This project uses [lts-19.32](https://www.stackage.org/lts-19.32), which
-includes Clash 1.6.4. Snapshots tightly couple GHC and package versions. By
-working this way, Stack projects build on a cohesive set of packages. Plus, it
-guarantees that if a `stack build` works now, it will work in 10 years too.
+3. How could you further shorten the critical path?
 
-Note: If you need a newer Clash version, simply change the version bounds in `clash-workshop.cabal` and follow the hints given by Stack.
+## Exercise 3: Instruction machines
+After implementing exercises 2{a,b,c} we can expect our pipelined design to run at reasonable clock speeds. We can still do a lot better though. As it currently stands, our users can do a full key reschedule every clock cycle. To facilitate this, we insert ~_½n²_ registers, where _n_ is the number of rounds our network uses. That is a lot of resources! In reality, a user is probably not interested in a full reschedule every cycle. A much more likely scenario is that of a single reschedule followed by a large number of encryption/decryption operations.
 
-## src/
-This is where the source code of the project lives, as specified in `clash-workshop.cabal`. It contains a single file, `Example/Project.hs` which starts with:
+### 3a
+Implement a function wrapping the round function. It should either store a given key, or mangle data with a previously stored key.
 
-```haskell
-module Example.Project (topEntity, plus) where
+1. Define a _Sum of Product_ data type that can store one of two instructions: _store_ or _mangle_.
 
-import Clash.Prelude
+2. Change the type of your top level function and "follow the type errors".
 
--- | Add two numbers. Example:
---
--- >>> plus 3 5
--- 8
-plus :: Signed 8 -> Signed 8 -> Signed 8
-plus a b = a + b
-```
+Note: the solutions of this exercise build on the result of `2b` _not_ `2c`. You might want to building from `2c` if you want to have ticked off `3d` too.
 
-`clash-workshop.cabal` enabled `NoImplicitPrelude` which enables the use of `Clash.Prelude` here. Next, a function `plus` is defined. It simply adds two numbers. Note that the example (`>>> plus 3 5`) gets executed by the _doctests_ defined for this project and checked for consistency with the result in the documentation (`8`).
+Hint: if your round function is _pure_, you might want to consider using `mealy` to implement the instruction machine.
 
-```haskell
--- | 'topEntity' is Clash's equivalent of 'main' in other programming
--- languages. Clash will look for it when compiling 'Example.Project'
--- and translate it to HDL. While polymorphism can be used freely in
--- Clash projects, a 'topEntity' must be monomorphic and must use non-
--- recursive types. Or, to put it hand-wavily, a 'topEntity' must be
--- translatable to a static number of wires.
-topEntity :: Signed 8 -> Signed 8 -> Signed 8
-topEntity = plus
-```
+Hint: your wrapper functions likely need to be addressable.
 
-as the comment says `topEntity` will get compiled by Clash if we ask it to compile this module:
+### 3b
+Add a _mangle mode_: encryption or decryption. Figure out a way to switch between encrypting and decrypting without a key reschedule.
 
-```
-stack run clash -- Example.Project --vhdl
-```
+Hint: the minimum and maximum bound of a number type can be requested with `minBound` and `maxBound` respectively.
 
-or
+### 3c
+It is usually a good idea to add an instruction "doing nothing" to an instruction machine. Add it to your data structure, and use the warnings Clash/GHC produces to find the places in your code that need an update.
 
-```
-cabal run clash -- Example.Project --vhdl
-```
-
-We could instead ask it to synthesize `plus` instead:
-
-```
-stack run clash -- Example.Project --vhdl -main-is plus
-```
-
-If you want to play around with Clash, this is probably where you would put all the definitions mentioned in ["Clash.Tutorial" on Hackage](https://hackage.haskell.org/package/clash-prelude).
-
-## tests/
-Most of this directory is scaffolding, with the meat of the tests being defined in `tests/Tests/Example/Project.hs`. Writing good test cases is pretty hard: edge cases are easy to forget both in the implementation and tests. To this end, it's a good idea to use _fuzz testing_. In this project we use [Hedgehog](https://hedgehog.qa/):
-
-```haskell
-import Example.Project (plus)
-
-prop_plusIsCommutative :: H.Property
-prop_plusIsCommutative = H.property $ do
-  a <- H.forAll (Gen.integral (Range.linear minBound maxBound))
-  b <- H.forAll (Gen.integral (Range.linear minBound maxBound))
-  plus a b === plus b a
-```
-
-This test generates two numbers `a` and `b` that fit neatly into domain of `Signed 8`, thanks to the use of `minBound` and `maxBound`. It then tests whether the `plus` operation commutes. I.e., whether `a + b ~ b + a`. All functions called `prop_*` are collected automatically:
-
-```haskell
-tests :: TestTree
-tests = $(testGroupGenerator)
-```
-
-We can run the tests using `stack test` or `cabal run test-library`:
-
-```
-.
-  Tests.Example.Project
-    plusIsCommutative: OK
-        ✓ plusIsCommutative passed 100 tests.
-
-All 1 tests passed (0.00s)
-```
-
-# Change the license
-By default `clash-workshop.cabal` sets its `license` field to `BSD-2-Clause`. You might want to change this.
+### 3d
+Like `2c`, make your round function parameterizable in its delay.

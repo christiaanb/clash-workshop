@@ -1,9 +1,9 @@
 cabal-version:       2.4
 name:                clash-workshop
 version:             0.1
-license:             BSD-2-Clause
-author:              John Smith <john@example.com>
-maintainer:          John Smith <john@example.com>
+license-file:        LICENSE
+author:              Martijn Bastiaan
+maintainer:          martijn@qbaylogic.com
 
 common common-options
   default-extensions:
@@ -20,126 +20,71 @@ common common-options
     DeriveLift
     DeriveTraversable
     DerivingStrategies
-    FlexibleContexts
     InstanceSigs
     KindSignatures
-    LambdaCase
-    NamedFieldPuns
+    MagicHash
     NoStarIsType
-    PolyKinds
-    RankNTypes
-    RecordWildCards
+    NoImplicitPrelude
     ScopedTypeVariables
     StandaloneDeriving
     TupleSections
     TypeApplications
-    TypeFamilies
     TypeOperators
+    TypeFamilies
     ViewPatterns
-
-    -- TemplateHaskell is used to support convenience functions such as
-    -- 'listToVecTH' and 'bLit'.
-    TemplateHaskell
-    QuasiQuotes
-
-    -- Prelude isn't imported by default as Clash offers Clash.Prelude
-    NoImplicitPrelude
   ghc-options:
-    -Wall -Wcompat
-    -haddock
-
-    -- Plugins to support type-level constraint solving on naturals
+    -Wall
     -fplugin GHC.TypeLits.Extra.Solver
     -fplugin GHC.TypeLits.Normalise
     -fplugin GHC.TypeLits.KnownNat.Solver
-
-    -- Clash needs access to the source code in compiled modules
-    -fexpose-all-unfoldings
-
-    -- Worker wrappers introduce unstable names for functions that might have
-    -- blackboxes attached for them. You can disable this, but be sure to add
-    -- a no-specialize pragma to every function with a blackbox.
-    -fno-worker-wrapper
-
-    -- Strict annotations - while sometimes preventing space leaks - trigger
-    -- optimizations Clash can't deal with. See:
-    --
-    --    https://github.com/clash-lang/clash-compiler/issues/2361
-    --
-    -- These flags disables these optimizations. Note that the fields will
-    -- remain strict.
-    -fno-unbox-small-strict-fields
-    -fno-unbox-strict-fields
+  default-language: Haskell2010
   build-depends:
     base,
     Cabal,
-
-    -- clash-prelude will set suitable version bounds for the plugins
-    clash-prelude >= 1.8.2 && < 1.10,
+    clash-prelude,
     ghc-typelits-natnormalise,
     ghc-typelits-extra,
-    ghc-typelits-knownnat
+    ghc-typelits-knownnat,
 
 
 library
-  import: common-options
+  import:              common-options
   hs-source-dirs: src
   exposed-modules:
-    Example.Project
-    Day1
-    Day2
-    Day3.Core
-    Day3.CoreTypes
-    Day3.CodeGen
+    Clash.Feistel.Ex1
+    Clash.Feistel.Impl1a
+    Clash.Feistel.Impl1b
+    Clash.Feistel.Impl1c
 
-  build-depends:
-    mtl
+    Clash.Feistel.Ex2
+    Clash.Feistel.Impl2a
+    Clash.Feistel.Impl2b
+    Clash.Feistel.Impl2c
 
-  default-language: Haskell2010
+    Clash.Feistel.Impl3a
+    Clash.Feistel.Impl3b
+    Clash.Feistel.Impl3c
 
--- Builds the executable 'clash', with clash-workshop project in scope
-executable clash
-  main-is: bin/Clash.hs
-  default-language: Haskell2010
-  Build-Depends: base, clash-ghc, clash-workshop
-  ghc-options: +RTS -qn4 -A128M -RTS -j4
-  if !os(Windows)
-    ghc-options: -dynamic
+    Clash.Feistel.Util
+  default-language:    Haskell2010
 
--- Builds the executable 'clashi', with clash-workshop project in scope
-executable clashi
-  main-is: bin/Clashi.hs
-  default-language: Haskell2010
-  ghc-options: +RTS -qn4 -A128M -RTS -j4
-  if !os(Windows)
-    ghc-options: -dynamic
-  build-depends: base, clash-ghc, clash-workshop
-
-test-suite doctests
-  type:             exitcode-stdio-1.0
-  default-language: Haskell2010
-  main-is:          doctests.hs
-  ghc-options:      -Wall -Wcompat -threaded
-  hs-source-dirs:   tests
-  build-depends:
-    base,
-    clash-workshop,
-    doctest-parallel >= 0.2 && < 0.4,
 
 test-suite test-library
   import: common-options
-  default-language: Haskell2010
   hs-source-dirs: tests
   type: exitcode-stdio-1.0
   ghc-options: -threaded
-  main-is: unittests.hs
+  main-is: tests.hs
   other-modules:
-    Tests.Example.Project
+    Tests.Clash.Feistel.Impl1
+    Tests.Clash.Feistel.Ex1
+    Tests.Clash.Feistel.Impl2b
+    Tests.Clash.Feistel.Ex2
+    Tests.Clash.Feistel
   build-depends:
     clash-workshop,
-    QuickCheck,
     clash-prelude-hedgehog,
     hedgehog,
-    tasty >= 1.2 && < 1.6,
     tasty-hedgehog,
-    tasty-th
+    tasty-hunit,
+    tasty,
